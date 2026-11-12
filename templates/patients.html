@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% block title %}Patients{% endblock %}
+{% macro cell(v, col) -%}
+  {%- if info.columns[col] == 'HIDE' -%}<span class="hidden-val" data-tip="HIDE: the view returns NULL">hidden</span>
+  {%- elif info.columns[col] == 'MASK' -%}<span class="masked" data-tip="MASK: redacted inside the view">{{ v or '—' }}</span>
+  {%- else -%}{{ v or '—' }}{%- endif -%}
+{%- endmacro %}
+{% block content %}
+<header class="page-h">
+  <div><h1>Patients</h1>
+  <p class="muted">{{ rows|length }} row(s) returned by <code>vpd_patients</code>.</p></div>
+  {% if current_user.can_insert %}<a class="btn primary" href="{{ url_for('patient_new') }}">+ Register patient</a>{% endif %}
+</header>
+
+<div class="policy-banner">
+  <div><span class="label">Row policy</span><code>{{ info.policy }}</code></div>
+  <div class="grow"><span class="label">Effective query</span><code class="sql-inline">{{ info.rewritten }}</code></div>
+  <div><span class="label">Columns</span>
+    {% for c, a in info.columns.items() %}<span class="act act-{{ a|lower }}" data-tip="{{ c }}: {{ a }}">{{ c }}</span>{% endfor %}</div>
+</div>
+
+<form class="filters" method="get">
+  <input name="q" value="{{ q }}" placeholder="Search name or MRN…" maxlength="60">
+  <select name="ward"><option value="">All wards</option>
+    {% for w in WARDS %}<option {{ 'selected' if w == ward }}>{{ w }}</option>{% endfor %}</select>
+  <button class="btn">Filter</button>
+  {% if q or ward %}<a class="btn ghost" href="{{ url_for('patients') }}">Clear</a>{% endif %}
+</form>
+
+<div class="card flush"><div class="table-wrap">
+<table class="tbl">
+  <thead><tr><th>MRN</th><th>Name</th><th>Gender</th><th>Date of birth</th><th>Ward</th><th>Doctor</th><th>Phone</th><th>Aadhaar</th><th>Diagnosis</th><th></th></tr></thead>
+  <tbody>
+  {% for p in rows %}
+    <tr>
+      <td class="mono">{{ p.mrn }}{% if p.is_vip %} <span class="badge vip">VIP</span>{% endif %}</td>
+      <td>{{ p.full_name }}</td><td>{{ p.gender }}</td>
+      <td class="mono">{{ cell(p.dob, 'dob') }}</td>
+      <td>{{ p.ward }}</td><td>{{ p.doctor_name or '—' }}</td>
+      <td class="mono">{{ cell(p.phone, 'phone') }}</td>
+      <td class="mono">{{ cell(p.aadhaar, 'aadhaar') }}</td>
+      <td>{{ cell(p.diagnosis, 'diagnosis') }}</td>
+      <td><a href="{{ url_for('patient_view', pid=p.id) }}">Open</a></td>
+    </tr>
+  {% else %}
+    <tr><td colspan="10" class="empty">No rows. Your predicate <code>{{ info.predicate }}</code> is false for every patient.</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div></div>
+{% endblock %}

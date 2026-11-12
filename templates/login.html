@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block title %}Sign in{% endblock %}
+{% block public %}
+<div class="auth">
+  <div class="auth-card">
+    <div class="auth-brand">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2 4 5v6c0 5 3.4 9.7 8 11 4.6-1.3 8-6 8-11V5l-8-3z"/><path class="tick" d="m8.5 12 2.5 2.5 4.5-5"/></svg>
+      <div><h1>SecureMed VPD</h1><p>Virtual Private Database · row- and column-level security</p></div>
+    </div>
+    {% with msgs = get_flashed_messages(with_categories=true) %}
+      {% for cat, m in msgs %}<div class="flash {{ cat }}">{{ m }}</div>{% endfor %}
+    {% endwith %}
+    <form method="post" autocomplete="off">
+      {{ csrf() }}
+      <label>Username<input name="username" id="username" required autofocus maxlength="40"></label>
+      <label>Password<input name="password" id="password" type="password" required maxlength="128"></label>
+      <button class="btn primary wide">Sign in</button>
+    </form>
+    <p class="muted small">At sign-in, your identity is written into the database session's <b>application context</b>. Every query on patient data is then filtered by your role's policy.</p>
+  </div>
+  <div class="auth-side">
+    <h2>Demo accounts</h2>
+    <p class="muted small">Sign in as different users. All of them query the same table but see different rows and columns. Click a row to fill the form.</p>
+    <table class="tbl compact demo-accounts">
+      <thead><tr><th>Username</th><th>Password</th><th>Role</th><th>Row policy</th></tr></thead>
+      <tbody>
+        <tr><td>admin</td><td>Admin@123</td><td>ADMIN</td><td>All rows, data masked</td></tr>
+        <tr><td>dr.mehta</td><td>Doctor@123</td><td>DOCTOR</td><td>Own patients</td></tr>
+        <tr><td>dr.iyer</td><td>Doctor@123</td><td>DOCTOR</td><td>Own patients</td></tr>
+        <tr><td>nurse.anita</td><td>Nurse@123</td><td>NURSE · Cardiology</td><td>Own ward</td></tr>
+        <tr><td>nurse.ravi</td><td>Nurse@123</td><td>NURSE · Neurology</td><td>Own ward</td></tr>
+        <tr><td>reception</td><td>Reception@123</td><td>RECEPTIONIST</td><td>Non-VIP only</td></tr>
+        <tr><td>intern</td><td>Intern@123</td><td>INTERN</td><td>No rows</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

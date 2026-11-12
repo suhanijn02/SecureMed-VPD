@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block title %}Policy simulator{% endblock %}
+{% block content %}
+<header class="page-h">
+  <div><h1>Policy simulator</h1>
+  <p class="muted">For each user, a separate database session sets that user's application context and runs <code>SELECT * FROM vpd_patients</code>. The table and the query are the same each time; the results differ.</p></div>
+</header>
+
+<div class="card flush"><div class="table-wrap">
+<table class="tbl">
+  <thead><tr><th>User</th><th>Role · ward</th><th>Predicate applied</th><th>Rows visible</th>{% for c in columns %}<th>{{ c }}</th>{% endfor %}<th></th></tr></thead>
+  <tbody>{% for r in results %}
+    <tr class="{{ 'sel-row' if r.user.id == selected }}">
+      <td class="mono"><b>{{ r.user.username }}</b></td>
+      <td>{{ r.user.role_name }}{% if r.user.ward %} · {{ r.user.ward }}{% endif %}</td>
+      <td><code>{{ r.info.predicate }}</code></td>
+      <td class="rows-cell" data-tip="{{ r.count }} of {{ total }} rows">
+        <span class="mini-track"><span class="mini-fill" style="width: {{ (r.count / total * 100)|round(1) if total else 0 }}%"></span></span>
+        <b>{{ r.count }}</b></td>
+      {% for c in columns %}<td><span class="act act-{{ r.info.columns[c]|lower }}">{{ r.info.columns[c] }}</span></td>{% endfor %}
+      <td><a href="{{ url_for('simulator', user=r.user.id) }}">Preview</a></td>
+    </tr>{% endfor %}
+  </tbody>
+</table>
+</div></div>
+
+{% if preview %}
+<div class="card">
+  <h3>Preview: first 12 rows as <span class="pill">{{ preview.user.username }}</span> sees them</h3>
+  <div class="table-wrap"><table class="tbl compact">
+    <thead><tr><th>MRN</th><th>Name</th><th>Ward</th><th>VIP</th><th>DOB</th><th>Phone</th><th>Aadhaar</th><th>Diagnosis</th></tr></thead>
+    <tbody>{% for p in preview.rows %}
+      <tr><td class="mono">{{ p.mrn }}</td><td>{{ p.full_name }}</td><td>{{ p.ward }}</td><td>{{ 'yes' if p.is_vip else '' }}</td>
+        {% for c in ['dob','phone','aadhaar','diagnosis'] %}<td class="mono">{% if p[c] is none %}<span class="hidden-val">NULL</span>{% else %}{{ p[c] }}{% endif %}</td>{% endfor %}</tr>
+    {% else %}<tr><td colspan="8" class="empty">No rows: the policy denies everything for this user.</td></tr>{% endfor %}</tbody>
+  </table></div>
+</div>
+{% endif %}
+{% endblock %}

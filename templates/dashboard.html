@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+{% block title %}My security context{% endblock %}
+{% block content %}
+<header class="page-h">
+  <div>
+    <h1>Welcome, {{ current_user.full_name }}</h1>
+    <p class="muted">This is what the database knows about your session, and how it uses that to filter patient data.</p>
+  </div>
+</header>
+
+<section class="stats">
+  <div class="stat"><span class="label">Patient rows visible to you</span>
+    <span class="num">{{ visible }}<small> of {{ total }}</small></span>
+    <span class="sub">{{ total - visible }} rows filtered out by the policy</span></div>
+  <div class="stat"><span class="label">Active row policy</span>
+    <span class="num sm">{{ info.type }}</span><span class="sub mono">{{ info.policy }}</span></div>
+  <div class="stat"><span class="label">Columns shown in clear</span>
+    <span class="num">{{ info.columns.values()|select('equalto','SHOW')|list|length }}<small> of {{ info.columns|length }}</small></span>
+    <span class="sub">protected columns</span></div>
+</section>
+
+<div class="flow">
+  <div class="flow-step"><span class="n">1</span><b>Login</b><span>Your identity is verified.</span></div>
+  <div class="flow-arrow">→</div>
+  <div class="flow-step"><span class="n">2</span><b>Set context</b><span>It is written to <code>app_context</code> for this DB session.</span></div>
+  <div class="flow-arrow">→</div>
+  <div class="flow-step"><span class="n">3</span><b>Policy function</b><span>It looks up the predicate and column rules for your role.</span></div>
+  <div class="flow-arrow">→</div>
+  <div class="flow-step"><span class="n">4</span><b>Secure view</b><span><code>vpd_patients</code> filters rows and masks columns.</span></div>
+</div>
+
+<div class="grid two">
+  <div class="card">
+    <h3>1 · Your application context <small class="muted">SELECT * FROM app_context</small></h3>
+    <p class="muted small">This is a <b>TEMP</b> table: private to your database session, like Oracle's <code>SYS_CONTEXT</code>. Other users' sessions cannot see or change it.</p>
+    <table class="tbl compact">
+      <tbody>{% for k in ['user_id','username','role_id','role_name','ward','set_at'] %}
+        <tr><td class="mono">{{ k }}</td><td class="mono"><b>{{ ctx[k] if ctx[k] is not none else 'NULL' }}</b></td></tr>{% endfor %}</tbody>
+    </table>
+  </div>
+
+  <div class="card">
+    <h3>2 · Your query, as the database rewrites it</h3>
+    <p class="muted small">You request every patient; the policy predicate is appended automatically:</p>
+    <pre class="sql"><span class="c">-- you write</span>
+SELECT * FROM vpd_patients;
+
+<span class="c">-- the database runs</span>
+{{ info.rewritten }};</pre>
+    {% if by_ward %}
+    <h4>Visible rows by ward</h4>
+    {% set m = by_ward[0]['c'] %}
+    <div class="hbars">
+      {% for r in by_ward %}
+      <div class="hbar" data-tip="{{ r.ward }}: {{ r.c }} patients"><span class="hb-label">{{ r.ward }}</span>
+        <span class="hb-track"><span class="hb-fill" style="width: {{ (r.c / m * 100)|round(1) }}%"></span></span><span class="hb-val">{{ r.c }}</span></div>
+      {% endfor %}
+    </div>
+    {% else %}<p class="empty">The predicate is false for every row, so you see nothing.</p>{% endif %}
+  </div>
+
+  <div class="card span2">
+    <h3>3 · Column-level security for {{ current_user.role_name }}</h3>
+    <div class="colpols big">
+      {% for col, act in info.columns.items() %}
+        <div class="colpol"><div><b>{{ col }}</b><span class="muted small">{{ columns[col][2] }}</span></div>
+          <div class="right"><span class="act act-{{ act|lower }}">{{ act }}</span>
+          <span class="mono small muted">{% if act == 'SHOW' %}real value{% elif act == 'MASK' %}e.g. {{ columns[col][1] }}{% else %}NULL{% endif %}</span></div></div>
+      {% endfor %}
+    </div>
+    <p class="muted small">Statement permissions for your role:
+      <span class="act {{ 'act-show' if current_user.can_insert else 'act-hide' }}">INSERT</span>
+      <span class="act {{ 'act-show' if current_user.can_update else 'act-hide' }}">UPDATE</span>
+      <span class="act {{ 'act-show' if current_user.can_delete else 'act-hide' }}">DELETE</span></p>
+  </div>
+</div>
+{% endblock %}

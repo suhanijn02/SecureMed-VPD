@@ -1,0 +1,8 @@
+# runtime data: SQLite DB and Flask secret key (regenerated on first run)
+instance/
+__pycache__/
+*.pyc
+.venv/
+venv/
+.vscode/
+~$*.pptx

@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block title %}{{ p.mrn }}{% endblock %}
+{% macro val(col) -%}
+  {%- set a = info.columns[col] -%}
+  {%- if a == 'HIDE' -%}<span class="hidden-val">NULL (hidden)</span>
+  {%- elif a == 'MASK' -%}<span class="masked">{{ p[col] or '—' }}</span>
+  {%- else -%}{{ p[col] or '—' }}{%- endif -%}
+  <span class="act act-{{ a|lower }}">{{ a }}</span>
+{%- endmacro %}
+{% block content %}
+<header class="page-h">
+  <div><h1>{{ p.full_name }} {% if p.is_vip %}<span class="badge vip">VIP</span>{% endif %}</h1>
+  <p class="muted mono">{{ p.mrn }} · {{ p.ward }} · {{ p.doctor_name or 'unassigned' }}</p></div>
+  <div class="actions">
+    {% if current_user.can_update %}<a class="btn" href="{{ url_for('patient_edit', pid=p.id) }}">Edit</a>{% endif %}
+    {% if current_user.can_delete %}
+    <form method="post" action="{{ url_for('patient_delete', pid=p.id) }}" class="inline" data-confirm="Delete {{ p.mrn }}?">
+      {{ csrf() }}<button class="btn danger">Delete</button></form>{% endif %}
+  </div>
+</header>
+<div class="grid two">
+  <div class="card">
+    <h3>Record, as returned by the view</h3>
+    <dl class="kv wide">
+      <dt>Gender</dt><dd>{{ p.gender }}</dd>
+      <dt>Date of birth</dt><dd class="mono">{{ val('dob') }}</dd>
+      <dt>PIN code</dt><dd class="mono">{{ p.pincode }}</dd>
+      <dt>Phone</dt><dd class="mono">{{ val('phone') }}</dd>
+      <dt>Aadhaar</dt><dd class="mono">{{ val('aadhaar') }}</dd>
+      <dt>Diagnosis</dt><dd>{{ val('diagnosis') }}</dd>
+      <dt>Last updated</dt><dd class="mono">{{ p.updated_at }}</dd>
+    </dl>
+  </div>
+  <div class="card">
+    <h3>Why you can see this record</h3>
+    <pre class="sql">SELECT * FROM vpd_patients WHERE id = {{ p.id }};
+<span class="c">-- becomes</span>
+SELECT ... FROM patients p
+ WHERE p.id = {{ p.id }}
+   AND {{ info.predicate }};</pre>
+    <p class="muted small">If this row did not match your predicate, the page would return <b>404 Not Found</b>, not 403. Row-level security hides even the fact that the row exists.</p>
+  </div>
+</div>
+{% endblock %}

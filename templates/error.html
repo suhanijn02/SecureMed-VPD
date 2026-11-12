@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block title %}{{ code }}{% endblock %}
+{% macro body() %}
+<div class="card error-card">
+  <div class="err-code">{{ code }}</div>
+  <h1>{% if code == 403 %}Access denied{% elif code == 404 %}Not found{% else %}Bad request{% endif %}</h1>
+  <p>{{ message }}</p>
+  {% if code == 403 %}<p class="muted small">This attempt was recorded in the audit trail with status DENIED.</p>{% endif %}
+  <a class="btn" href="{{ url_for('dashboard') }}">Back to dashboard</a>
+</div>
+{% endmacro %}
+{% block content %}{{ body() }}{% endblock %}
+{% block public %}<div class="auth">{{ body() }}</div>{% endblock %}

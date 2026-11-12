@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block title %}SQL console{% endblock %}
+{% block content %}
+<header class="page-h">
+  <div><h1>SQL console</h1>
+  <p class="muted">Write your own SELECT and try to get round the policy. Your session's application context still applies, and a database <b>authorizer</b> blocks direct reads of the base <code>patients</code> table: it can only be read through the view.</p></div>
+</header>
+<div class="grid console-grid">
+  <form method="post" class="card form">
+    {{ csrf() }}
+    <label>SQL (read-only, single statement)
+      <textarea name="sql" id="sql" rows="6" spellcheck="false" maxlength="2000">{{ sql }}</textarea></label>
+    <button class="btn primary">Run query</button>
+  </form>
+  <div class="card">
+    <h3>Try these</h3>
+    <div class="examples">
+      {% for label, q in examples %}<button type="button" class="example" data-sql="{{ q }}"><b>{{ label }}</b><code>{{ q }}</code></button>{% endfor %}
+    </div>
+  </div>
+</div>
+{% if error %}
+<div class="card result denied"><h3>✗ Blocked by the database</h3><pre class="sql">{{ error }}</pre></div>
+{% elif result %}
+<div class="card result ok">
+  <h3>✓ {{ result.rows|length }} row(s){% if result.rows|length == 200 %} (first 200){% endif %}</h3>
+  <div class="table-wrap"><table class="tbl compact">
+    <thead><tr>{% for c in result.cols %}<th>{{ c }}</th>{% endfor %}</tr></thead>
+    <tbody>{% for r in result.rows %}<tr>{% for v in r %}<td class="mono">{% if v is none %}<span class="hidden-val">NULL</span>{% else %}{{ v }}{% endif %}</td>{% endfor %}</tr>{% endfor %}</tbody>
+  </table></div>
+</div>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% block title %}{{ 'Register patient' if creating else 'Edit ' ~ p.mrn }}{% endblock %}
+{% macro protected(col, label, attrs) -%}
+  {%- if creating or cols[col] == 'SHOW' -%}
+  <label>{{ label }}<input name="{{ col }}" value="{{ p[col] or '' }}" {{ attrs|safe }}></label>
+  {%- else -%}
+  <label>{{ label }}<input value="{{ p[col] or 'NULL (hidden)' }}" disabled><small>Policy is {{ cols[col] }}, so this column is read-only. The UPDATE trigger ignores it.</small></label>
+  {%- endif -%}
+{%- endmacro %}
+{% block content %}
+<header class="page-h">
+  <div><h1>{{ 'Register patient' if creating else 'Edit ' ~ (p.mrn or '') }}</h1>
+  <p class="muted">Writes go through the <code>vpd_patients</code> view. Its INSTEAD OF trigger rejects any row that would fall outside your policy (the check option).</p></div>
+</header>
+<form method="post" class="card form grid-form">
+  {{ csrf() }}
+  <label>Full name<input name="full_name" value="{{ p.full_name or '' }}" required maxlength="80"></label>
+  <label>Gender<select name="gender">{% for g_ in ['M','F','O'] %}<option {{ 'selected' if p.gender == g_ }}>{{ g_ }}</option>{% endfor %}</select></label>
+  {{ protected('dob', 'Date of birth', 'type="date" required') }}
+  <label>PIN code<input name="pincode" value="{{ p.pincode or '' }}" pattern="[1-9][0-9]{5}" required></label>
+  {{ protected('phone', 'Phone', 'pattern="[6-9][0-9]{9}" required') }}
+  <label>Ward<select name="ward">{% for w in WARDS %}<option {{ 'selected' if p.ward == w }}>{{ w }}</option>{% endfor %}</select></label>
+  {% if creating and current_user.role_name != 'DOCTOR' %}
+  <label>Attending doctor<select name="doctor_id">{% for d in doctors %}<option value="{{ d.id }}" {{ 'selected' if p.doctor_id|string == d.id|string }}>{{ d.full_name }} ({{ d.ward }})</option>{% endfor %}</select></label>
+  {% endif %}
+  {{ protected('aadhaar', 'Aadhaar number', 'placeholder="XXXX-XXXX-XXXX" required') }}
+  {% if cols.diagnosis == 'SHOW' %}
+  <label class="span2">Diagnosis<input name="diagnosis" value="{{ p.diagnosis or '' }}" maxlength="120"></label>
+  {% else %}<label class="span2">Diagnosis<input value="Your role cannot read or write diagnoses (policy {{ cols.diagnosis }})" disabled></label>{% endif %}
+  <label class="check span2"><input type="checkbox" name="is_vip" value="1" {{ 'checked' if p.is_vip and p.is_vip|string != '0' }}> VIP patient</label>
+  <div class="span2 actions"><button class="btn primary">{{ 'Register' if creating else 'Save changes' }}</button>
+    <a class="btn ghost" href="{{ url_for('patients') }}">Cancel</a></div>
+</form>
+{% endblock %}
